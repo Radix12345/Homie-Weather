@@ -1,82 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Homie Weather V2</title>
+    <title>Homie Weather Elite</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
     <style>
-        body { 
-            /* Transition makes the color change smooth */
-            transition: background 2s ease;
-            color: #fff; font-family: 'Segoe UI', sans-serif; 
-            display: flex; flex-direction: column; align-items: center; 
-            justify-content: center; height: 100vh; margin: 0; text-align: center;
-            background: #111;
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', sans-serif; background: #000; color: white; }
+        .ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            background: rgba(0,0,0,0.3); /* Darkens the background so text pops */
+            pointer-events: none;
         }
-        
-        /* Animated Weather Icon (Number 3) */
-        .icon-circle {
-            width: 120px; height: 120px;
-            background: #ffcc00; border-radius: 50%;
-            margin-bottom: 20px;
-            box-shadow: 0 0 50px #ffcc00;
-            animation: pulse 3s infinite;
+        #temp { font-size: 120px; font-weight: 900; margin: 0; pointer-events: auto; }
+        #status { font-size: 24px; margin-bottom: 20px; }
+        .wisdom-btn {
+            padding: 15px 30px; background: rgba(255,255,255,0.2); border: 2px solid #fff;
+            color: white; border-radius: 50px; cursor: pointer; pointer-events: auto;
+            backdrop-filter: blur(10px); transition: 0.3s; font-weight: bold;
         }
-
-        @keyframes pulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.1); opacity: 0.8; box-shadow: 0 0 80px #ffcc00; }
-            100% { transform: scale(1); opacity: 1; }
-        }
-
-        #temp { font-size: 100px; font-weight: 900; margin: 0; text-shadow: 2px 2px 10px rgba(0,0,0,0.5); }
-        #status { font-size: 24px; padding: 20px; font-weight: 500; max-width: 300px; }
+        .wisdom-btn:hover { background: #fff; color: #000; }
+        #quote-display { margin-top: 20px; font-style: italic; max-width: 80%; font-size: 18px; }
     </style>
 </head>
 <body>
-    <div id="visual" class="icon-circle"></div>
-    <p id="temp">--°</p>
-    <div id="status">Checking the vibes...</div>
+
+    <div class="ui-layer">
+        <p id="temp">--°</p>
+        <div id="status">Scanning the vibes...</div>
+        <button class="wisdom-btn" onclick="showQuote()">GET WISDOM</button>
+        <div id="quote-display"></div>
+    </div>
 
     <script>
-        async function getVibe() {
+        let weatherType = 'clear'; // 'clear', 'rain', or 'snow'
+        let particles = [];
+        const quotes = [
+            "Don't stop when you're tired, stop when you're done. 😤",
+            "The hustle is beautiful, homie. Keep going. ✨",
+            "Your only limit is your mind. Break through. 🚀",
+            "Stay humble, stay hungry. 💎"
+        ];
+
+        function showQuote() {
+            const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+            document.getElementById('quote-display').innerText = randomQuote;
+        }
+
+        async function checkWeather() {
             navigator.geolocation.getCurrentPosition(async (pos) => {
                 const { latitude, longitude } = pos.coords;
-                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
-                const data = await response.json();
+                const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                const data = await res.json();
                 const temp = data.current_weather.temperature;
-                
-                document.getElementById('temp').innerText = Math.round(temp) + "°C";
-                
-                let message = "";
-                let bgColor = "";
-                let glowColor = "";
+                const code = data.current_weather.weathercode;
 
-                // Logic for Background & Messages (Number 1)
-                if (temp > 30) {
-                    message = "Sauna status. Stay hydrated, homie! 🥵";
-                    bgColor = "linear-gradient(135deg, #ff4e50, #f9d423)"; // Hot Red/Orange
-                    glowColor = "#ff4e50";
-                } else if (temp > 20) {
-                    message = "Pure vibes. Perfect t-shirt weather. 🌴";
-                    bgColor = "linear-gradient(135deg, #43e97b, #38f9d7)"; // Tropical Green
-                    glowColor = "#43e97b";
-                } else if (temp > 10) {
-                    message = "It's aight, grab a hoodie for the flex. 🧥";
-                    bgColor = "linear-gradient(135deg, #48c6ef, #6f86d6)"; // Cool Blue
-                    glowColor = "#48c6ef";
-                } else {
-                    message = "It's brick! Stay inside. ❄️";
-                    bgColor = "linear-gradient(135deg, #1e3c72, #2a5298)"; // Deep Freeze Blue
-                    glowColor = "#fff";
-                }
-                
-                document.body.style.background = bgColor;
-                document.getElementById('visual').style.background = glowColor;
-                document.getElementById('visual').style.boxShadow = `0 0 60px ${glowColor}`;
-                document.getElementById('status').innerText = message;
+                document.getElementById('temp').innerText = Math.round(temp) + "°";
+
+                // Weather Codes: 61, 63, 65 = Rain | 71, 73, 75 = Snow
+                if (code >= 61 && code <= 65) weatherType = 'rain';
+                else if (code >= 71 && code <= 75) weatherType = 'snow';
+                else weatherType = 'clear';
+
+                document.getElementById('status').innerText = (weatherType === 'clear' ? "It's a clear vibe." : "Weather's doing its thing.");
             });
         }
-        getVibe();
+
+        // P5.js Animation Engine
+        function setup() {
+            createCanvas(windowWidth, windowHeight);
+            for(let i=0; i<100; i++) particles.push(new Particle());
+        }
+
+        function draw() {
+            if (weatherType === 'clear') background(20, 100, 200); // Blue Sky
+            if (weatherType === 'rain') background(30, 30, 50);   // Dark Rain
+            if (weatherType === 'snow') background(200, 200, 220); // Bright Snow
+
+            for (let p of particles) {
+                p.update();
+                p.display();
+            }
+        }
+
+        class Particle {
+            constructor() { this.reset(); }
+            reset() {
+                this.x = random(width);
+                this.y = random(-height, 0);
+                this.speed = random(5, 10);
+                this.size = random(2, 5);
+            }
+            update() {
+                this.y += this.speed;
+                if (this.y > height) this.reset();
+            }
+            display() {
+                noStroke();
+                if (weatherType === 'rain') { fill(100, 150, 255); rect(this.x, this.y, 2, 15); }
+                if (weatherType === 'snow') { fill(255); ellipse(this.x, this.y, this.size); }
+                if (weatherType === 'clear') { fill(255, 255, 100, 50); ellipse(this.x, this.y, this.size * 2); }
+            }
+        }
+
+        function windowResized() { resizeCanvas(windowWidth, windowHeight); }
+        checkWeather();
     </script>
 </body>
 </html>
