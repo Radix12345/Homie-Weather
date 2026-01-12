@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Homie Weather</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { 
+            background: #000; color: #fff; font-family: sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+            justify-content: center; height: 100vh; margin: 0; text-align: center;
+        }
+        #temp { font-size: 80px; font-weight: bold; margin: 0; color: #00ff88; }
+        #status { font-size: 24px; padding: 20px; color: #ffcc00; }
+        .location { font-size: 14px; opacity: 0.6; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="location">CURRENT VIBE IN YOUR AREA</div>
+    <p id="temp">--°</p>
+    <div id="status">Checking the vibes...</div>
+
+    <script>
+        async function getVibe() {
+            // This gets your location automatically
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const { latitude, longitude } = pos.coords;
+                const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`);
+                const data = await response.json();
+                const temp = data.current_weather.temperature;
+                
+                document.getElementById('temp').innerText = Math.round(temp) + "°C";
+                
+                let message = "";
+                if (temp > 30) message = "It's a straight sauna out here, homie. Stay hydrated! 🥵";
+                else if (temp > 20) message = "Pure vibes. Perfect t-shirt weather. 🌴";
+                else if (temp > 10) message = "It's aight, but grab a hoodie for the flex. 🧥";
+                else if (temp > 0) message = "It's brick! Keep that heater on blast. ❄️";
+                else message = "Nah, stay inside. This ain't it. 🧊";
+                
+                document.getElementById('status').innerText = message;
+            });
+        }
+        getVibe();
+    </script>
+</body>
+</html>
